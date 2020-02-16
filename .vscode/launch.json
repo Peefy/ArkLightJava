@@ -6,6 +6,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "CodeLens (Launch) - Main",
+            "request": "launch",
+            "mainClass": "Main",
+            "projectName": "ArkLightJava_a054cd8e"
+        },
+        {
+            "type": "java",
+            "name": "CodeLens (Launch) - Test",
+            "request": "launch",
+            "mainClass": "test.Test",
+            "projectName": "ArkLightJava_a054cd8e"
+        },
+        {
+            "type": "java",
             "name": "Debug (Launch)-Test",
             "request": "launch",
             "cwd": "${workspaceFolder}",
