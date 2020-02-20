@@ -6,19 +6,24 @@ package src.datetime;
 public class TimeSpan {
 
     TimeSpan(final long ticks) {
-
+        this.ticks = ticks;
     }
 
     public TimeSpan(final int hours, final int minutes, final int seconds) {
-
+        this.ticks = timeToTicks(hours, minutes, seconds);
     }
 
     public TimeSpan(final int days, final int hours, final int minutes, final int seconds) {
-
+        this(days, hours, minutes, seconds, 0);
     }
 
     public TimeSpan(final int days, final int hours, final int minutes, final int seconds, final int milliseconds) {
-
+        long num = ((long)days * 3600L * 24 + (long)hours * 3600L + (long)minutes * 60L + seconds) * TimeConstants.millisPerSecond + milliseconds;
+        if (num > TimeConstants.maxMilliSeconds || num < TimeConstants.minMilliSeconds)
+        {
+            throw new Error();
+        }
+        this.ticks = num * TimeConstants.ticksPerMillisecond;
     }
     
     /**
@@ -46,15 +51,15 @@ public class TimeSpan {
     }
 
     public static TimeSpan fromDays(final double value) {
-
+        return interval(value, TimeConstants.millisPerDay);
     }
 
     public static TimeSpan fromHours(final double value) {
-
+        return interval(value, TimeConstants.millisPerHour);
     }
 
     public static TimeSpan fromMilliseconds(final double value) {
-
+        return interval(value, 1);
     }
 
     public static TimeSpan FromMinutes(final double value) {
@@ -119,10 +124,19 @@ public class TimeSpan {
 
     private long ticks;
     private static volatile boolean legacyConfigChecked;
-	private static volatile boolean legacyMode;
-    private static TimeSpan interval(final double value, final int scale) {}
-    private void judgeTicksIsMin() {}
-    private double ticksToOADate(final long value) {}
+    private static volatile boolean legacyMode;
+    
+    private static TimeSpan interval(final double value, final int scale) {
+
+    }
+
+    private void judgeTicksIsMin() {
+
+    }
+
+    private double ticksToOADate(final long value) {
+
+    }
 
     @Override
     public String toString() {
