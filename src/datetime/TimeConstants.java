@@ -50,6 +50,6 @@ public class TimeConstants {
     public static final long maxValueTimeSpanTicks = 9223372036854775807L;
     public static final long ticksCeiling = 4611686018427387904L;
     public static final long ticksMask = 4611686018427387903L;
-    public static final long flagsMask = 13835058055282163712L;
-    public static final long localMask = 9223372036854775808L;
+    // public static final long flagsMask = 13835058055282163712L;
+    // public static final long localMask = 9223372036854775808L;
 }

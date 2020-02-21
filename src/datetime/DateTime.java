@@ -69,18 +69,18 @@ public class DateTime {
     
     public DateTime(int year, int month, int day)
     {
-        dateData = (long)DateToTicks(year, month, day);
+        dateData = (long)dateToTicks(year, month, day);
     }
     
     public DateTime(int year, int month, int day, int hour, int minute, int second)
     {
-        dateData = (long)(DateToTicks(year, month, day) + TimeToTicks(hour, minute, second));
+        dateData = (long)(dateToTicks(year, month, day) + TimeToTicks(hour, minute, second));
     }
     
     public DateTime(int year, int month, int day, int hour, int minute, int second, DateTimeKind kind)
     {
         judgeDateTimeKind(kind);
-        long num = DateToTicks(year, month, day) + TimeToTicks(hour, minute, second);
+        long num = dateToTicks(year, month, day) + TimeToTicks(hour, minute, second);
         dateData = (long)(num | (kind.getValue() << 62));
     }
     
@@ -93,7 +93,7 @@ public class DateTime {
     public DateTime(int year, int month, int day, int hour, int minute, int second, int millisecond, DateTimeKind kind)
     {
         judgeAllParas(year, month, day, hour, minute, second, millisecond, kind);
-        dateData = (long)(judgeNumTicks(year, month, day, hour, minute, second, millisecond) | ((long)kind << 62));
+        dateData = (long)(judgeNumTicks(year, month, day, hour, minute, second, millisecond) | (kind.getValue() << 62));
     }
     
     public DateTime(long ticks, DateTimeKind kind, boolean isAmbiguousDst)
@@ -104,110 +104,115 @@ public class DateTime {
             (TimeConstants.minValueTimeSpanTicks)));
     }
     
-    public static DateTime Now()
+    public static DateTime now()
     {
         Date date = new Date();
-        return DateTime(date.getYear(), date.getMonth(), date.getDay(),
+        return new DateTime(date.getYear(), date.getMonth(), date.getDay(),
             date.getHours(), date.getMinutes(), date.getSeconds(), DateTimeKind.Local);
     }
     
-    public static DateTime UtcNow()
+    public static DateTime utcNow()
     {
         Date date = new Date();
         //Date.UTC(year, month, date, hrs, min, sec)
     }
     
-    public static DateTime Today()
+    public static DateTime today()
     {
-        return Now().Date();
+        return now().date();
     }
     
-    public static DateTime MinValue()
+    public static DateTime minValue()
     {
-        return DateTime(0L, DateTimeKind::Unspecified);
+        return new DateTime(0L, DateTimeKind.Unspecified);
     }
     
-    public static DateTime MaxValue()
+    public static DateTime maxValue()
     {
-        return DateTime(MaxTicks, DateTimeKind::Unspecified);
+        return new DateTime(TimeConstants.maxTicks, DateTimeKind.Unspecified);
     }
     
-    public static DateTime FromBinary(final long dateData)
+    public static DateTime fromBinary(final long dateData)
     {
-        if ((dateData  MinValueTimeSpanTicks) != 0L)
+        if ((dateData & TimeConstants.minValueTimeSpanTicks) != 0L)
         {
-            long num = dateData  0x3FFFFFFFFFFFFFFF;
+            long num = dateData & 0x3FFFFFFFFFFFFFFFL;
             if (num > 4611685154427387904L)
             {
                 num -= 4611686018427387904L;
             }
-            bool isAmbiguousLocalDst = false;
+            boolean isAmbiguousLocalDst = false;
             long ticks = 0;
             if (num < 0)
             {
                 //ticks = TimeZoneInfo::GetLocalUtcOffset(MinValue, TimeZoneInfoOptions::NoThrowOnInvalidTime).Ticks;
             }
-            else if (num > MaxTicks)
+            else if (num > TimeConstants.maxTicks)
             {
                 // ticks = TimeZoneInfo::GetLocalUtcOffset(MaxValue, TimeZoneInfoOptions::NoThrowOnInvalidTime).Ticks;
             }
             else
             {
-                DateTime time = DateTime(num, DateTimeKind::Utc);
-                bool isDaylightSavings = false;
+                DateTime time = new DateTime(num, DateTimeKind.Utc);
+                boolean isDaylightSavings = false;
                 // ticks = TimeZoneInfo::GetUtcOffsetFromUtc(time, TimeZoneInfo.Local, isDaylightSavings, isAmbiguousLocalDst).Ticks;
             }
             num += ticks;
             if (num < 0)
             {
-                num += TicksPerDay;
+                num += TimeConstants.ticksPerDay;
             }
-            if (num < 0 || num > MaxTicks)
+            if (num < 0 || num > TimeConstants.maxTicks)
             {
-                throw;
+                throw new Error();
             }
-            return DateTime(num, DateTimeKind::Local, isAmbiguousLocalDst);
+            return new DateTime(num, DateTimeKind.Local, isAmbiguousLocalDst);
         }
-        return FromBinaryRaw(dateData);
+        return fromBinaryRaw(dateData);
     }
     
-    public static DateTime FromBinaryRaw(final long dateData)
+    public static DateTime fromBinaryRaw(final long dateData)
     {
-        return DateTime((long)dateData);
+        return new DateTime((long)dateData);
     }
     
-    public static DateTime FromFileTime(final long fileTime)
+    public static DateTime fromFileTime(final long fileTime)
     {
-        return FromFileTimeUtc(fileTime).ToLocalTime();
+        return fromFileTimeUtc(fileTime).toLocalTime();
     }
     
-    public static DateTime FromFileTimeUtc(final long fileTime)
+    public static DateTime fromFileTimeUtc(final long fileTime)
     {
         if (fileTime < 0 || fileTime > 2650467743999999999L)
         {
-            throw;
+            throw new Error();
         }
-        long ticks = fileTime + FileTimeOffset;
-        return DateTime(ticks, DateTimeKind::Utc);
+        long ticks = fileTime + TimeConstants.fileTimeOffset;
+        return new DateTime(ticks, DateTimeKind.Utc);
     }
     
-    public static DateTime FromOADate(final double d)
+    public static DateTime fromOADate(final double d)
     {
-        return DateTime(DoubleDateToTicks(d), DateTimeKind::Unspecified);
+        return new DateTime(doubleDateToTicks(d), DateTimeKind.Unspecified);
     }
     
+    public static DateTime javaDateToDateTime(Date date) {
+
+    }
+
     // Unrealized
-    public static DateTime Parse(final string s)
+    public static DateTime parse(final String s)
     {
-        return Now();
+        Date date = new Date(s);
+        return javaDateToDateTime(date);
     }
     
-    public static DateTime SpecifyKind(final DateTime value, final DateTimeKind kind)
+    public static DateTime specifyKind(final DateTime value, final DateTimeKind kind)
     {
-        return DateTime(value.getInternalTicks(), kind);
+        return new DateTime(value.getInternalTicks(), kind);
     }
     
-    public static int Compare(final DateTime t1, final DateTime t2)
+    public static int compare(final DateTime t1, final DateTime t2)
     {
         long internalTicks = t1.getInternalTicks();
         long internalTicks2 = t2.getInternalTicks();
@@ -222,28 +227,30 @@ public class DateTime {
         return 0;
     }
     
-    public static int DaysInMonth(final int year, final int month)
+    public static int daysInMonth(final int year, final int month)
     {
         if (month < 1 || month > 12)
         {
-            throw;
+            throw new Error();
         }
-        auto isleapyear = IsLeapYear(year);
+        boolean isleapyear = isLeapYear(year);
         if (isleapyear == true)
         {
-            return DaysToMonth366[month] - DaysToMonth366[month];
+            return TimeConstants.daysToMonth366[month] - 
+                TimeConstants.daysToMonth366[month];
         }
         else
         {
-            return DaysToMonth365[month] - DaysToMonth365[month];
+            return TimeConstants.daysToMonth365[month] - 
+                TimeConstants.daysToMonth365[month];
         }
     }
     
-    public static bool IsLeapYear(final int year)
+    public static boolean isLeapYear(final int year)
     {
         if (year < 1 || year > 9999)
         {
-            throw;
+            throw new Error();
         }
         if (year % 4 == 0)
         {
@@ -256,92 +263,97 @@ public class DateTime {
         return false;
     }
     
-    public Time GetTime()
+    public Time getTime()
     {
-        Time _rtime;
-        _rtime.Year = Year();
-        _rtime.Month = Month();
-        _rtime.Day = Day();
-        _rtime.Hour = Hour();
-        _rtime.Minute = Minute();
-        _rtime.Second = Second();
-        _rtime.Millisecond = Millisecond();
-        return _rtime;
+        Time rtime;
+        rtime.year = year();
+        rtime.month = month();
+        rtime.day = day();
+        rtime.hour = hour();
+        rtime.minute = minute();
+        rtime.second = second();
+        rtime.millisecond = millisecond();
+        return rtime;
     }
     
-    public DayOfWeek GetDayOfWeek()
+    public DayOfWeek getDayOfWeek()
     {
-        return static_cast<DayOfWeek>((getInternalTicks() / TicksPerDay + 1) % 7);
+        int index = (int)((getInternalTicks() / TimeConstants.ticksPerDay + 1) % 7);
+        return DayOfWeek.values()[index];
     }
     
-    DateTimeKind GetDateTimeKind()
+    public DateTimeKind getDateTimeKind()
     {
-        auto internalKind = getInternalKind();
+        int internalKind = (int)getInternalKind();
         switch (internalKind)
         {
-        case 0uL:
-            return DateTimeKind::Unspecified;
-        case KindUtc:
-            return DateTimeKind::Utc;
+        case 0:
+            return DateTimeKind.Unspecified;
+        case 1:
+            return DateTimeKind.Utc;
+        case 2:
         default:
-            return DateTimeKind::Local;
+            return DateTimeKind.Local;
         }
     }
     
-    TimeSpan GetTimeOfDay()
+    public TimeSpan getTimeOfDay()
     {
-        return TimeSpan(0);
+        return new TimeSpan(0);
     }
     
-    DateTime Date()
+    public DateTime date()
     {
         long internalTicks = getInternalTicks();
-        return DateTime((long)((internalTicks - internalTicks % TicksPerDay) | (long)getInternalKind()));
+        return new DateTime((long)((internalTicks - 
+            internalTicks % TimeConstants.ticksPerDay) | 
+            (long)getInternalKind()));
     }
     
-    DateTime Add(final TimeSpan value)
+    public DateTime add(final TimeSpan value)
     {
-        return AddTicks(value.Ticks());
+        return addTicks(value.ticks());
     }
     
-    DateTime Add(double value, int scale)
+    public DateTime add(double value, int scale)
     {
         long num = (long)(value * (double)scale + ((value >= 0.0) ? 0.5 : (-0.5)));
-        if (num <= -MaxMillis || num >= MaxMillis)
+        if (num <= -TimeConstants.maxMillis || 
+            num >= TimeConstants.maxMillis)
         {
-            throw;
+            throw new Error();
         }
-        return AddTicks(num * 10000);
+        return addTicks(num * 10000);
     }
     
-    DateTime AddDays(double value)
+    public DateTime addDays(double value)
     {
-        return Add(value, MillisPerDay);
+        return add(value, TimeConstants.millisPerDay);
     }
     
-    DateTime AddHours(double value)
+    public DateTime addHours(double value)
     {
-        return Add(value, MillisPerHour);
+        return add(value, TimeConstants.millisPerHour);
     }
     
-    DateTime AddMilliseconds(double value)
+    public DateTime addMilliseconds(double value)
     {
-        return Add(value, 1);
+        return add(value, 1);
     }
     
-    DateTime AddMinutes(double value)
+    public DateTime addMinutes(double value)
     {
-        return Add(value, MillisPerMinute);
+        return add(value, TimeConstants.millisPerMinute);
     }
     
-    DateTime AddMonths(int months)
+    public DateTime addMonths(int months)
     {
         int year = 0, month = 0, day = 0;
         if (months < -120000 || months > 120000)
         {
-            throw;
+            throw new Error();
         }
-        GetDatePart(year, month, day);
+        getDatePart(year, month, day);
         int num = month - 1 + months;
         if (num >= 0)
         {
@@ -355,76 +367,79 @@ public class DateTime {
         }
         if (year < 1 || year > 9999)
         {
-            throw;
+            throw new Error();
         }
-        int num2 = DaysInMonth(year, month);
+        int num2 = daysInMonth(year, month);
         if (day > num2)
         {
             day = num2;
         }
-        return DateTime((long)((DateToTicks(year, month, day) + getInternalTicks() % TicksPerDay) | (long)getInternalKind()));
+        return new DateTime((long)((doubledateToTicks(year, month, day) + getInternalTicks() % TicksPerDay) | (long)getInternalKind()));
     }
     
-    DateTime AddSeconds(double value)
+    public DateTime addSeconds(double value)
     {
-        return Add(value, MillisPerSecond);
+        return add(value, TimeConstants.millisPerSecond);
     }
     
-    DateTime AddTicks(long value)
+    public DateTime addTicks(long value)
     {
         long internalTicks = getInternalTicks();
-        if (value > MaxTicks - internalTicks || value < -internalTicks)
+        if (value > TimeConstants.maxTicks - internalTicks || 
+            value < -internalTicks)
         {
-            throw;
+            throw new Error();
         }
-        return DateTime((long)((internalTicks + value) | (long)getInternalKind()));
+        return new DateTime((long)((internalTicks + value) | (long)getInternalKind()));
     }
     
-    DateTime AddYears(int value)
+    public DateTime addYears(int value)
     {
         if (value < -10000 || value > 10000)
         {
-            throw;
+            throw new Error();
         }
-        return AddMonths(value * 12);
+        return addMonths(value * 12);
     }
     
-    TimeSpan Subtract(final DateTime value)
+    public TimeSpan subtract(final DateTime value)
     {
-        return TimeSpan(getInternalTicks() - value.getInternalTicks());
+        return new TimeSpan(getInternalTicks() - value.getInternalTicks());
     }
     
-    DateTime Subtract(final TimeSpan value)
+    public DateTime subtract(final TimeSpan value)
     {
         long internalTicks = getInternalTicks();
-        long ticks = value.Ticks();
-        if (internalTicks - 0 < ticks || internalTicks - MaxTicks > ticks)
+        long ticks = value.ticks();
+        if (internalTicks - 0 < ticks || 
+            internalTicks - TimeConstants.maxTicks > ticks)
         {
-            throw;
+            throw new Error();
         }
-        return DateTime((long)((internalTicks - ticks) | (long)getInternalTicks()));
+        return new DateTime((long)((internalTicks - ticks) | 
+            (long)getInternalTicks()));
     }
     
-    DateTime ToLocalTime()
+    public DateTime toLocalTime()
     {
-        return ToLocalTime(false);
+        return toLocalTime(false);
     }
     
-    DateTime ToLocalTime(bool throwOnOverflow)
+    public DateTime toLocalTime(boolean throwOnOverflow)
     {
-        if (GetDateTimeKind() == DateTimeKind::Local)
+        if (getDateTimeKind() == DateTimeKind.Local)
         {
-            return *this;
+            return this;
         }
-        bool isDaylightSavings = false;
-        bool isAmbiguousLocalDst = false;
+        boolean isDaylightSavings = false;
+        boolean isAmbiguousLocalDst = false;
         long ticks = 0; // TimeZoneInfo::GetUtcOffsetFromUtc(this, TimeZoneInfo::Local, isDaylightSavings, isAmbiguousLocalDst).Ticks();
         long num = getInternalTicks() + ticks;
         if (num > MaxTicks)
         {
             if (throwOnOverflow)
             {
-                throw;
+                throw new Error();
             }
             return DateTime(MaxTicks, DateTimeKind::Local);
         }
@@ -432,20 +447,21 @@ public class DateTime {
         {
             if (throwOnOverflow)
             {
-                throw;
+                throw new Error();
             }
             return DateTime(0L, DateTimeKind::Local);
         }
         return DateTime(num, DateTimeKind::Local, isAmbiguousLocalDst);
     }
     
-    DateTime ToUniversalTime()
+    public DateTime toUniversalTime()
     {
-        return *this;
+        return this;
         // return TimeZoneInfo::ConvertTimeToUtc(*this, TimeZoneInfoOptions::NoThrowOnInvalidTime);
     }
     
-    string ToString()
+    @Override
+    public String toString()
     {
         std::stringstream ss;
         ss << Year() << "-" << Month() << "-" << Day() << "-" << Hour() << "-" << Minute() << "-" << Second();
@@ -453,64 +469,33 @@ public class DateTime {
         // return DateTimeFormat::Format(this, nullptr, DateTimeFormatInfo::CurrentInfo);
     }
     
-    wstring ToWString() 
+    public double toOADate()
     {
-        std::wstringstream ss;
-        ss << Year() << "-" << Month() << "-" << Day() << "-" << Hour() << "-" << Minute() << "-" << Second();
-        return ss.str();
+        return ticksToOADate(getInternalTicks());
     }
     
-    string ToLongDateString()
+    public long toFileTime()
     {
-        return ToString();
-        // return DateTimeFormat::Format(this, "D", DateTimeFormatInfo::CurrentInfo);
+        return toUniversalTime().ToFileTimeUtc();
     }
     
-    string ToLongTimeString()
-    {
-        return ToString();
-        // return DateTimeFormat::Format(this, "T", DateTimeFormatInfo::CurrentInfo);
-    }
-    
-    string ToShortDateString()
-    {
-        return ToString();
-        // return DateTimeFormat::Format(this, "d", DateTimeFormatInfo::CurrentInfo);
-    }
-    
-    string ToShortTimeString()
-    {
-        return ToString();
-        // return DateTimeFormat::Format(this, "t", DateTimeFormatInfo::CurrentInfo);
-    }
-    
-    double ToOADate()
-    {
-        return TicksToOADate(getInternalTicks());
-    }
-    
-    long ToFileTime()
-    {
-        return ToUniversalTime().ToFileTimeUtc();
-    }
-    
-    long ToFileTimeUtc()
+    public long toFileTimeUtc()
     {
         long num = (((long)getInternalKind()  -9223372036854775807L) != 0L) ? ToUniversalTime().getInternalTicks() : getInternalTicks();
         num -= FileTimeOffset;
         if (num < 0)
         {
-            throw;
+            throw new Error();
         }
         return num;
     }
     
-    long ToBinary()
+    public long toBinary()
     {
         return (long)dateData;
     }
     
-    int CompareTo(final DateTime value)
+    public int compareTo(final DateTime value)
     {
         long internalTicks = value.getInternalTicks();
         long internalTicks2 = getInternalTicks();
@@ -525,124 +510,67 @@ public class DateTime {
         return 0;
     }
     
-    bool Equals(final DateTime value)
+    public boolean equals(final DateTime value)
     {
         return getInternalTicks() == value.getInternalTicks();
     }
     
-    bool EqualsMonthAndDay(DateTime value)
+    public boolean EqualsMonthAndDay(DateTime value)
     {
         return Month() == value.Month()  Day() == value.Day();
     }
     
-    DateTime operator+(final TimeSpan t)
+    public int day()
     {
-        long internalTicks = getInternalTicks();
-        long ticks = t.Ticks();
-        if (ticks > MaxTicks - internalTicks || ticks < -internalTicks)
-        {
-            throw;
-        }
-        return DateTime((long)((internalTicks + ticks) | (long)getInternalKind()));
+        return getDatePart(3);
     }
     
-    DateTime operator-(final TimeSpan t)
+    public int dayOfYear()
     {
-        long internalTicks = getInternalTicks();
-        long ticks = t.Ticks();
-        if (internalTicks - 0 < ticks || internalTicks - MaxTicks > ticks)
-        {
-            throw; 
-        }
-        return DateTime((long)((internalTicks - ticks) | (long)getInternalKind()));
+        return getDatePart(1);
     }
     
-    TimeSpan operator-(final DateTime d)
-    {
-        return TimeSpan(getInternalTicks() - d.getInternalTicks());
-    }
-    
-    bool operator==(final DateTime d)
-    {
-        return getInternalTicks() == d.getInternalTicks();
-    }
-    
-    bool operator!=(final DateTime d)
-    {
-        return getInternalTicks() != d.getInternalTicks();
-    }
-    
-    bool operator<(final DateTime d)
-    {
-        return getInternalTicks() < d.getInternalTicks();
-    }
-    
-    bool operator<=(final DateTime d)
-    {
-        return getInternalTicks() <= d.getInternalTicks();
-    }
-    
-    bool operator>(final DateTime d)
-    {
-        return getInternalTicks() > d.getInternalTicks();
-    }
-    
-    bool operator>=(final DateTime d)
-    {
-        return getInternalTicks() >= d.getInternalTicks();
-    }
-    
-    int Day()
-    {
-        return GetDatePart(3);
-    }
-    
-    int DayOfYear()
-    {
-        return GetDatePart(1);
-    }
-    
-    int Hour()
+    public int hour()
     {
         return (int)(getInternalTicks() / TicksPerHour % 24);
     }
     
-    int Millisecond()
+    public int millisecond()
     {
         return (int)(getInternalTicks() / TicksPerMillisecond % 1000);
     }
     
-    int Minute()
+    public int minute()
     {
         return (int)(getInternalTicks() / TicksPerMinute % 60);
     }
     
-    int Month()
+    public int month()
     {
         return GetDatePart(2);
     }
     
-    int Second()
+    public int second()
     {
         return (int)(getInternalTicks() / TicksPerSecond % 60);
     }
     
-    int Year()
+    public int year()
     {
         return GetDatePart(0);
     }
     
-    long Ticks()
+    public long ticks()
     {
         return getInternalTicks();
     }
     
-    long ToBinaryRaw()
+    public long toBinaryRaw()
     {
         return (long)dateData;
     }
     
-    int GetDatePart(int part)
+    public int getDatePart(int part)
     {
         long internalTicks = getInternalTicks();
         int num = (int)(internalTicks / TicksPerDay);
@@ -670,7 +598,7 @@ public class DateTime {
         {
             return num + 1;
         }
-        auto array = (num5 == 3  (num4 != 24 || num3 == 3)) ? DaysToMonth366 : DaysToMonth365;
+        auto array = (num5 == 3 & (num4 != 24 || num3 == 3)) ? DaysToMonth366 : DaysToMonth365;
         int i;
         for (i = num >> 6; num >= array[i]; i++)
         {
@@ -682,10 +610,10 @@ public class DateTime {
         return num - array[i - 1] + 1;
     }
     
-    void GetDatePart(int *year, int *month, int *day)
+    public void getDatePart(Integer year, Integer monnth, Integer day)
     {
         long internalTicks = getInternalTicks();
-        int num = (int)(internalTicks / TicksPerDay);
+        int num = (int)(internalTicks / TimeConstants.ticksPerDay);
         int num2 = num / 146097;
         num -= num2 * 146097;
         int num3 = num / 36524;
@@ -701,18 +629,18 @@ public class DateTime {
         {
             num5 = 3;
         }
-        *year = num2 * 400 + num3 * 100 + num4 * 4 + num5 + 1;
+        year = num2 * 400 + num3 * 100 + num4 * 4 + num5 + 1;
         num -= num5 * 365;
-        auto array = (num5 == 3  (num4 != 24 || num3 == 3)) ? DaysToMonth366 : DaysToMonth365;
+        auto array = (num5 == 3 & (num4 != 24 || num3 == 3)) ? DaysToMonth366 : DaysToMonth365;
         int i;
         for (i = (num >> 5) + 1; num >= array[i]; i++)
         {
         }
-        *month = i;
-        *day = num - array[i - 1] + 1;
+        month = i;
+        day = num - array[i - 1] + 1;
     }
     
-    double TicksToOADate(long value)
+    public double ticksToOADate(long value)
     {
         if (value == 0L)
         {
@@ -724,7 +652,7 @@ public class DateTime {
         }
         if (value < OADateMinAsTicks)
         {
-            throw; 
+            throw new Error(); 
         }
         long num = (value - 599264352000000000L) / 10000;
         if (num < 0)
@@ -738,7 +666,7 @@ public class DateTime {
         return (double)num / (double)MillisPerDay;
     }
     
-    long DateToTicks(int year, int month, int day)
+    public long dateToTicks(int year, int month, int day)
     {
         if (year >= 1  year <= 9999  month >= 1  month <= 12)
         {
@@ -750,23 +678,23 @@ public class DateTime {
                 return num2 * TicksPerDay;
             }
         }
-        throw; 
+        throw new Error(); 
     }
     
-    long TimeToTicks(int hour, int minute, int second)
+    public long timeToTicks(int hour, int minute, int second)
     {
         if (hour >= 0  hour < 24  minute >= 0  minute < 60  second >= 0  second < 60)
         {
             return TimeSpan::TimeToTicks(hour, minute, second);
         }
-        throw; 
+        throw new Error(); 
     }
     
-    long DoubleDateToTicks(double value)
+    public long doubledateToTicks(double value)
     {
         if (!(value < 2958466.0) || !(value > -657435.0))
         {
-            throw; 
+            throw new Error(); 
         }
         long num = (long)(value * (double)MillisPerDay + ((value >= 0.0) ? 0.5 : (-0.5)));
         if (num < 0)
@@ -776,63 +704,66 @@ public class DateTime {
         num += 59926435200000L;
         if (num < 0 || num >= 315537897600000L)
         {
-            throw; 
+            throw new Error(); 
         }
         return num * 10000;
     }
     
-     long getInternalTicks() final
+    public long getInternalTicks() final
     {
         return (long)(dateData  0x3FFFFFFFFFFFFFFF);
     }
     
-     long getInternalKind() final
+    public long getInternalKind() final
     {
         return (long)(dateData  -4611686018427387904L);
     }
     
-     bool IsAmbiguousDaylightSavingTime() final
+    public boolean IsAmbiguousDaylightSavingTime() final
     {
         return getInternalKind() == KindLocalAmbiguousDst;
     }
     
-    void judgeMillisecond(int millisecond)
+    public void judgeMillisecond(int millisecond)
     {
         if (millisecond < 0 || millisecond >= 1000)
         {
-            throw;
+            throw new Error();
         }
     }
-    void judgeDateTimeKind(DateTimeKind kind)
+
+    public void judgeDateTimeKind(DateTimeKind kind)
     {
         if (kind < DateTimeKind::Unspecified || kind > DateTimeKind::Local)
         {
-            throw;
+            throw new Error();
         }
     }
-    long judgeNumTicks(int year, int month, int day, int hour, int minute, int second, int millisecond)
+
+    public long judgeNumTicks(int year, int month, int day, int hour, int minute, int second, int millisecond)
     {
-        long num = DateToTicks(year, month, day) + TimeToTicks(hour, minute, second);
+        long num = dateToTicks(year, month, day) + TimeToTicks(hour, minute, second);
         num += (long)millisecond * 10000L;
         if (num < 0 || num > MaxTicks)
         {
-            throw;
+            throw new Error();
         }
         return num;
     }
-    void judgeTicks(long ticks)
+
+    public void judgeTicks(long ticks)
     {
         if (ticks < 0 || ticks > MaxTicks)
         {
-            throw;
+            throw new Error();
         }
     }
-    void judgeAllParas(int year, int month, int day, int hour, int minute, int second, int millisecond, DateTimeKind kind)
+
+    public void judgeAllParas(int year, int month, int day, int hour, int minute, int second, int millisecond, DateTimeKind kind)
     {
         judgeMillisecond(millisecond);
         judgeDateTimeKind(kind);
         judgeNumTicks(year, month, day, hour, minute, second, millisecond);
     }
-    
     
 }
