@@ -266,7 +266,7 @@ public class DateTime {
     public DateTime date() {
         long internalTicks = getInternalTicks();
         return new DateTime(
-                (long) ((internalTicks - internalTicks % TimeConstants.ticksPerDay) | (long) getInternalKind()));
+                (long) ((internalTicks - internalTicks % TimeConstants.ticksPerDay) ));
     }
 
     public DateTime add(final TimeSpan value) {
@@ -319,8 +319,7 @@ public class DateTime {
             day = num2;
         }
         return new DateTime((long) ((timeToTicks(year, month, day) + 
-            getInternalTicks() % TimeConstants.ticksPerDay)
-                | (long) getInternalKind()));
+            getInternalTicks() % TimeConstants.ticksPerDay)));
     }
 
     public DateTime addSeconds(double value) {
@@ -332,7 +331,7 @@ public class DateTime {
         if (value > TimeConstants.maxTicks - internalTicks || value < -internalTicks) {
             throw new Error();
         }
-        return new DateTime((long) ((internalTicks + value) | (long) getInternalKind()));
+        return new DateTime((long) ((internalTicks + value) ));
     }
 
     public DateTime addYears(int value) {
