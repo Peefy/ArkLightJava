@@ -1,7 +1,28 @@
 package src.datetime;
 
-public class ChinaDate{
-    /** 
+public class ChinaDate {
+
+    /**
+     * 阳历
+     **/
+    private class SolarHolidayStruct {
+        public int month;
+        public int day;
+        public int recess; // 假期长度
+        public String holidayName;
+
+        private SolarHolidayStruct() {
+        }
+
+        public SolarHolidayStruct(int month, int day, int recess, String name) {
+            this.month = month;
+            this.day = day;
+            this.recess = recess;
+            this.holidayName = name;
+        }
+    }
+
+    /**
      * 农历年(整型)
      */
     private final int cnIntYear = 0;
@@ -57,4 +78,3 @@ public class ChinaDate{
     }
 
 }
-

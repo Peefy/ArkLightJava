@@ -1,6 +1,7 @@
 package src.datetime;
 
 import java.util.Calendar;
+
 /**
  * Datetime
  */
@@ -175,12 +176,8 @@ public class DateTime {
     }
 
     public static DateTime javaDateToDateTime(Calendar date) {
-        return new DateTime(date.get(Calendar.YEAR), 
-            date.get(Calendar.MONTH) + 1, 
-            date.get(Calendar.DAY_OF_MONTH), 
-            date.get(Calendar.HOUR), 
-            date.get(Calendar.MINUTE),
-            date.get(Calendar.SECOND), DateTimeKind.Local);
+        return new DateTime(date.get(Calendar.YEAR), date.get(Calendar.MONTH) + 1, date.get(Calendar.DAY_OF_MONTH),
+                date.get(Calendar.HOUR), date.get(Calendar.MINUTE), date.get(Calendar.SECOND), DateTimeKind.Local);
     }
 
     // Unrealized
@@ -265,8 +262,7 @@ public class DateTime {
 
     public DateTime date() {
         long internalTicks = getInternalTicks();
-        return new DateTime(
-                (long) ((internalTicks - internalTicks % TimeConstants.ticksPerDay) ));
+        return new DateTime((long) ((internalTicks - internalTicks % TimeConstants.ticksPerDay)));
     }
 
     public DateTime add(final TimeSpan value) {
@@ -318,8 +314,7 @@ public class DateTime {
         if (day > num2) {
             day = num2;
         }
-        return new DateTime((long) ((timeToTicks(year, month, day) + 
-            getInternalTicks() % TimeConstants.ticksPerDay)));
+        return new DateTime((long) ((timeToTicks(year, month, day) + getInternalTicks() % TimeConstants.ticksPerDay)));
     }
 
     public DateTime addSeconds(double value) {
@@ -331,7 +326,7 @@ public class DateTime {
         if (value > TimeConstants.maxTicks - internalTicks || value < -internalTicks) {
             throw new Error();
         }
-        return new DateTime((long) ((internalTicks + value) ));
+        return new DateTime((long) ((internalTicks + value)));
     }
 
     public DateTime addYears(int value) {
@@ -389,10 +384,8 @@ public class DateTime {
     }
 
     @Override
-    public String toString()
-    {
-        String ss = year() + "-" + month() + "-" + day() 
-            + "-" + hour() + "-" + minute() + "-" + second();
+    public String toString() {
+        String ss = year() + "-" + month() + "-" + day() + "-" + hour() + "-" + minute() + "-" + second();
         return ss;
     }
 
@@ -487,8 +480,8 @@ public class DateTime {
         if (part == 1) {
             return num + 1;
         }
-        int[] array = (num5 == 3 && (num4 != 24 || num3 == 3)) ? 
-            TimeConstants.daysToMonth366 :TimeConstants.daysToMonth365;
+        int[] array = (num5 == 3 && (num4 != 24 || num3 == 3)) ? TimeConstants.daysToMonth366
+                : TimeConstants.daysToMonth365;
         int i;
         for (i = num >> 6; num >= array[i]; i++) {
         }
@@ -516,8 +509,8 @@ public class DateTime {
         }
         year = num2 * 400 + num3 * 100 + num4 * 4 + num5 + 1;
         num -= num5 * 365;
-        int[] array = (num5 == 3 && (num4 != 24 || num3 == 3)) ? 
-            TimeConstants.daysToMonth366 : TimeConstants.daysToMonth365;
+        int[] array = (num5 == 3 && (num4 != 24 || num3 == 3)) ? TimeConstants.daysToMonth366
+                : TimeConstants.daysToMonth365;
         int i;
         for (i = (num >> 5) + 1; num >= array[i]; i++) {
         }
@@ -545,20 +538,16 @@ public class DateTime {
         return (double) num / (double) TimeConstants.millisPerDay;
     }
 
-    public long dateToTicks(int year, int month, int day)
-    {
-        if (year >= 1 && year <= 9999 &&  month >= 1 &&  month <= 12)
-        {
-            int[] array = isLeapYear(year) ? 
-                TimeConstants.daysToMonth366 : TimeConstants.daysToMonth365;
-            if (day >= 1 && day <= array[month] - array[month - 1])
-            {
+    public long dateToTicks(int year, int month, int day) {
+        if (year >= 1 && year <= 9999 && month >= 1 && month <= 12) {
+            int[] array = isLeapYear(year) ? TimeConstants.daysToMonth366 : TimeConstants.daysToMonth365;
+            if (day >= 1 && day <= array[month] - array[month - 1]) {
                 int num = year - 1;
                 int num2 = num * 365 + num / 4 - num / 100 + num / 400 + array[month - 1] + day - 1;
                 return num2 * TimeConstants.ticksPerDay;
             }
         }
-        throw new Error(); 
+        throw new Error();
     }
 
     public long timeToTicks(int hour, int minute, int second) {
@@ -583,14 +572,12 @@ public class DateTime {
         return num * 10000;
     }
 
-    public long getInternalTicks()
-    {
-        return (long)(dateData & 0x3FFFFFFFFFFFFFFFL);
+    public long getInternalTicks() {
+        return (long) (dateData & 0x3FFFFFFFFFFFFFFFL);
     }
 
-    public long getInternalKind() 
-    {
-        return (long)(dateData & -4611686018427387904L);
+    public long getInternalKind() {
+        return (long) (dateData & -4611686018427387904L);
     }
 
     public boolean isAmbiguousDaylightSavingTime() {

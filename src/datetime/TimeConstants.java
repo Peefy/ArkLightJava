@@ -42,10 +42,10 @@ public class TimeConstants {
     public static final int datePartDayOfYear = 1;
     public static final int datePartMonth = 2;
     public static final int datePartDay = 3;
-    
-    public static final int[] daysToMonth365 = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
-    public static final int[] daysToMonth366 = {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366};
-    
+
+    public static final int[] daysToMonth365 = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 };
+    public static final int[] daysToMonth366 = { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 };
+
     public static final long minValueTimeSpanTicks = -9223372036854775807L;
     public static final long maxValueTimeSpanTicks = 9223372036854775807L;
     public static final long ticksCeiling = 4611686018427387904L;
