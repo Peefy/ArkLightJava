@@ -259,6 +259,1004 @@ public class ChinaDate {
         cDay = offset;
     }
 
+    // 农历日期初始化
+    /// <summary>
+    /// 用农历的日期来初使化
+    /// </summary>
+    /// <param name="cy">农历年</param>
+    /// <param name="cm">农历月</param>
+    /// <param name="cd">农历日</param>
+    /// <param name="LeapFlag">闰月标志</param>
+    public ChineseCalendar(int cy, int cm, int cd, bool leapMonthFlag)
+    {
+        int i, leap, Temp, offset;
+
+        CheckChineseDateLimit(cy, cm, cd, leapMonthFlag);
+
+        _cYear = cy;
+        _cMonth = cm;
+        _cDay = cd;
+
+        offset = 0;
+
+        for (i = MinYear; i < cy; i++)
+        {
+            //求当年农历年天数
+            Temp = GetChineseYearDays(i);
+            offset = offset + Temp;
+        }
+
+        //计算该年应该闰哪个月
+        leap = GetChineseLeapMonth(cy);
+        if (leap != 0)
+        {
+            this._cIsLeapYear = true;
+        }
+        else
+        {
+            this._cIsLeapYear = false;
+        }
+
+        if (cm != leap)
+        {
+            //当前日期并非闰月
+            _cIsLeapMonth = false;
+        }
+        else
+        {
+            //使用用户输入的是否闰月月份
+            _cIsLeapMonth = leapMonthFlag;
+        }
+
+        //当年没有闰月||计算月份小于闰月
+        if ((_cIsLeapYear == false) || (cm < leap))
+        {
+            for (i = 1; i < cm; i++)
+            {
+                Temp = GetChineseMonthDays(cy, i);//计算非闰月天数
+                offset = offset + Temp;
+            }
+
+            //检查日期是否大于最大天
+            if (cd > GetChineseMonthDays(cy, cm))
+            {
+                throw new Exception("不合法的农历日期");
+            }
+            //加上当月的天数
+            offset = offset + cd;
+        }
+
+        //是闰年，且计算月份大于或等于闰月
+        else
+        {
+            for (i = 1; i < cm; i++)
+            {
+                //计算非闰月天数
+                Temp = GetChineseMonthDays(cy, i);
+                offset = offset + Temp;
+            }
+
+            //计算月大于闰月
+            if (cm > leap)
+            {
+                Temp = GetChineseLeapMonthDays(cy);   //计算闰月天数
+                offset = offset + Temp;               //加上闰月天数
+
+                if (cd > GetChineseMonthDays(cy, cm))
+                {
+                    throw new Exception("不合法的农历日期");
+                }
+                offset = offset + cd;
+            }
+
+            //计算月等于闰月
+            else
+            {
+                //如果需要计算的是闰月，则应首先加上与闰月对应的普通月的天数
+                if (this._cIsLeapMonth == true)         //计算月为闰月
+                {
+                    Temp = GetChineseMonthDays(cy, cm); //计算非闰月天数
+                    offset = offset + Temp;
+                }
+
+                if (cd > GetChineseLeapMonthDays(cy))
+                {
+                    throw new Exception("不合法的农历日期");
+                }
+                offset = offset + cd;
+            }
+        }
+        _date = MinDay.AddDays(offset);
+    }
+    
+    
+
+     私有函数
+     GetChineseMonthDays
+    /// <summary>
+    /// //传回农历y年m月的总天数
+    /// </summary>
+    private int GetChineseMonthDays(int year, int month)
+    {
+        if (BitTest32((LunarDateArray[year - MinYear] & 0x0000FFFF), (16 - month)))
+        {
+            return 30;
+        }
+        else
+        {
+            return 29;
+        }
+    }
+    
+
+     GetChineseLeapMonth
+    /// <summary>
+    /// 传回农历 y年闰哪个月 1-12 , 没闰传回 0
+    /// </summary>
+    private int GetChineseLeapMonth(int year)
+    {
+        return LunarDateArray[year - MinYear] & 0xF;
+    }
+    
+
+     GetChineseLeapMonthDays
+    /// <summary>
+    /// 传回农历y年闰月的天数
+    /// </summary>
+    private int GetChineseLeapMonthDays(int year)
+    {
+        if (GetChineseLeapMonth(year) != 0)
+        {
+            if ((LunarDateArray[year - MinYear] & 0x10000) != 0)
+            {
+                return 30;
+            }
+            else
+            {
+                return 29;
+            }
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    
+
+     GetChineseYearDays
+    /// <summary>
+    /// 取农历年一年的天数
+    /// </summary>
+    private int GetChineseYearDays(int year)
+    {
+        int i, f, sumDay, info;
+
+        sumDay = 348; //29天*12个月
+        i = 0x8000;
+        info = LunarDateArray[year - MinYear] & 0x0FFFF;
+
+        //计算12个月中有多少天为30天
+        for (int m = 0; m < 12; m++)
+        {
+            f = info & i;
+            if (f != 0)
+            {
+                sumDay++;
+            }
+            i = i >> 1;
+        }
+        return sumDay + GetChineseLeapMonthDays(year);
+    }
+    
+
+     GetChineseHour
+    /// <summary>
+    /// 获得当前时间的时辰
+    /// </summary> 
+    private string GetChineseHour(DateTime dt)
+    {
+        int _hour, _minute, offset, i;
+        int indexGan;
+        string tmpGan;
+
+        //计算时辰的地支
+        _hour = dt.Hour;    //获得当前时间小时
+        _minute = dt.Minute;  //获得当前时间分钟
+
+        if (_minute != 0) _hour += 1;
+        offset = _hour / 2;
+        if (offset >= 12) offset = 0;
+        //zhiHour = zhiStr[offset].ToString();
+
+        //计算天干
+        TimeSpan ts = this._date - GanZhiStartDay;
+        i = ts.Days % 60;
+
+        //ganStr[i % 10] 为日的天干,(n*2-1) %10得出地支对应,n从1开始
+        indexGan = ((i % 10 + 1) * 2 - 1) % 10 - 1;
+
+        tmpGan = ganStr.Substring(indexGan) + ganStr.Substring(0, indexGan + 2);//凑齐12位
+        //ganHour = ganStr[((i % 10 + 1) * 2 - 1) % 10 - 1].ToString();
+
+        return tmpGan[offset].ToString() + zhiStr[offset].ToString();
+    }
+    
+
+     CheckDateLimit
+    /// <summary>
+    /// 检查公历日期是否符合要求
+    /// </summary>
+    private void CheckDateLimit(DateTime dt)
+    {
+        if ((dt < MinDay) || (dt > MaxDay))
+        {
+            throw new Exception("超出可转换的日期");
+        }
+    }
+    
+
+     CheckChineseDateLimit
+    /// <summary>
+    /// 检查农历日期是否合理
+    /// </summary>
+    private void CheckChineseDateLimit(int year, int month, int day, bool leapMonth)
+    {
+        if ((year < MinYear) || (year > MaxYear))
+        {
+            throw new Exception("非法农历日期");
+        }
+        if ((month < 1) || (month > 12))
+        {
+            throw new Exception("非法农历日期");
+        }
+        if ((day < 1) || (day > 30)) //中国的月最多30天
+        {
+            throw new Exception("非法农历日期");
+        }
+        int leap = GetChineseLeapMonth(year);// 计算该年应该闰哪个月
+        if ((leapMonth == true) && (month != leap))
+        {
+            throw new Exception("非法农历日期");
+        }
+    }
+    
+
+     ConvertNumToChineseNum
+    /// <summary>
+    /// 将0-9转成汉字形式
+    /// </summary>
+    private string ConvertNumToChineseNum(char n)
+    {
+        if ((n < '0') || (n > '9')) return "";
+        switch (n)
+        {
+            case '0':
+                return HZNum[0].ToString();
+            case '1':
+                return HZNum[1].ToString();
+            case '2':
+                return HZNum[2].ToString();
+            case '3':
+                return HZNum[3].ToString();
+            case '4':
+                return HZNum[4].ToString();
+            case '5':
+                return HZNum[5].ToString();
+            case '6':
+                return HZNum[6].ToString();
+            case '7':
+                return HZNum[7].ToString();
+            case '8':
+                return HZNum[8].ToString();
+            case '9':
+                return HZNum[9].ToString();
+            default:
+                return "";
+        }
+    }
+    
+
+     BitTest32
+    /// <summary>
+    /// 测试某位是否为真
+    /// </summary>
+    private bool BitTest32(int num, int bitpostion)
+    {
+        if ((bitpostion > 31) || (bitpostion < 0))
+            throw new Exception("Error Param: bitpostion[0-31]:" + bitpostion.ToString());
+
+        int bit = 1 << bitpostion;
+
+        if ((num & bit) == 0)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    
+
+     ConvertDayOfWeek
+    /// <summary>
+    /// 将星期几转成数字表示
+    /// </summary>
+    private int ConvertDayOfWeek(DayOfWeek dayOfWeek)
+    {
+        switch (dayOfWeek)
+        {
+            case DayOfWeek.Sunday:
+                return 1;
+            case DayOfWeek.Monday:
+                return 2;
+            case DayOfWeek.Tuesday:
+                return 3;
+            case DayOfWeek.Wednesday:
+                return 4;
+            case DayOfWeek.Thursday:
+                return 5;
+            case DayOfWeek.Friday:
+                return 6;
+            case DayOfWeek.Saturday:
+                return 7;
+            default:
+                return 0;
+        }
+    }
+    
+
+     CompareWeekDayHoliday
+    /// <summary>
+    /// 比较当天是不是指定的第周几
+    /// </summary>
+    private bool CompareWeekDayHoliday(DateTime date, int month, int week, int day)
+    {
+        bool ret = false;
+
+        if (date.Month == month) //月份相同
+        {
+            if (ConvertDayOfWeek(date.DayOfWeek) == day) //星期几相同
+            {
+                DateTime firstDay = new DateTime(date.Year, date.Month, 1);//生成当月第一天
+                int i = ConvertDayOfWeek(firstDay.DayOfWeek);
+                int firWeekDays = 7 - ConvertDayOfWeek(firstDay.DayOfWeek) + 1; //计算第一周剩余天数
+
+                if (i > day)
+                {
+                    if ((week - 1) * 7 + day + firWeekDays == date.Day)
+                    {
+                        ret = true;
+                    }
+                }
+                else
+                {
+                    if (day + firWeekDays + (week - 2) * 7 == date.Day)
+                    {
+                        ret = true;
+                    }
+                }
+            }
+        }
+
+        return ret;
+    }
+    
+    
+
+      属性
+     节日
+     newCalendarHoliday
+    /// <summary>
+    /// 计算中国农历节日
+    /// </summary>
+    public string NewCalendarHoliday
+    {
+        get
+        {
+            string tempStr = "";
+            if (this._cIsLeapMonth == false) //闰月不计算节日
+            {
+                foreach (LunarHolidayStruct lh in lHolidayInfo)
+                {
+                    if ((lh.Month == this._cMonth) && (lh.Day == this._cDay))
+                    {
+
+                        tempStr = lh.HolidayName;
+                        break;
+
+                    }
+                }
+
+                //对除夕进行特别处理
+                if (this._cMonth == 12)
+                {
+                    int i = GetChineseMonthDays(this._cYear, 12); //计算当年农历12月的总天数
+                    if (this._cDay == i) //如果为最后一天
+                    {
+                        tempStr = "除夕";
+                    }
+                }
+            }
+            return tempStr;
+        }
+    }
+    
+
+     WeekDayHoliday
+    /// <summary>
+    /// 按某月第几周第几日计算的节日
+    /// </summary>
+    public string WeekDayHoliday
+    {
+        get
+        {
+            string tempStr = "";
+            foreach (WeekHolidayStruct wh in wHolidayInfo)
+            {
+                if (CompareWeekDayHoliday(_date, wh.Month, wh.WeekAtMonth, wh.WeekDay))
+                {
+                    tempStr = wh.HolidayName;
+                    break;
+                }
+            }
+            return tempStr;
+        }
+    }
+    
+
+     DateHoliday
+    /// <summary>
+    /// 按公历日计算的节日
+    /// </summary>
+    public string DateHoliday
+    {
+        get
+        {
+            string tempStr = "";
+
+            foreach (SolarHolidayStruct sh in sHolidayInfo)
+            {
+                if ((sh.Month == _date.Month) && (sh.Day == _date.Day))
+                {
+                    tempStr = sh.HolidayName;
+                    break;
+                }
+            }
+            return tempStr;
+        }
+    }
+    
+    
+
+     公历日期
+     Date
+    /// <summary>
+    /// 取对应的公历日期
+    /// </summary>
+    public DateTime Date
+    {
+        get { return _date; }
+        set { _date = value; }
+    }
+    
+
+     WeekDay
+    /// <summary>
+    /// 取星期几
+    /// </summary>
+    public DayOfWeek WeekDay
+    {
+        get { return _date.DayOfWeek; }
+    }
+    
+
+     WeekDayStr
+    /// <summary>
+    /// 周几的字符
+    /// </summary>
+    public string WeekDayStr
+    {
+        get
+        {
+            switch (_date.DayOfWeek)
+            {
+                case DayOfWeek.Sunday:
+                    return "星期日";
+                case DayOfWeek.Monday:
+                    return "星期一";
+                case DayOfWeek.Tuesday:
+                    return "星期二";
+                case DayOfWeek.Wednesday:
+                    return "星期三";
+                case DayOfWeek.Thursday:
+                    return "星期四";
+                case DayOfWeek.Friday:
+                    return "星期五";
+                default:
+                    return "星期六";
+            }
+        }
+    }
+    
+
+     DateString
+    /// <summary>
+    /// 公历日期中文表示法 如一九九七年七月一日
+    /// </summary>
+    public string DateString
+    {
+        get
+        {
+            return "公元" + this._date.ToLongDateString();
+        }
+    }
+    
+
+     IsLeapYear
+    /// <summary>
+    /// 当前是否公历闰年
+    /// </summary>
+    public bool IsLeapYear
+    {
+        get
+        {
+            return DateTime.IsLeapYear(this._date.Year);
+        }
+    }
+    
+
+     ChineseConstellation
+    /// <summary>
+    /// 28星宿计算
+    /// </summary>
+    public string ChineseConstellation
+    {
+        get
+        {
+            int offset = 0;
+            int modStarDay = 0;
+
+            TimeSpan ts = this._date - ChineseConstellationReferDay;
+            offset = ts.Days;
+            modStarDay = offset % 28;
+            return (modStarDay >= 0 ? _chineseConstellationName[modStarDay] : _chineseConstellationName[27 + modStarDay]);
+        }
+    }
+    
+
+     ChineseHour
+    /// <summary>
+    /// 时辰
+    /// </summary>
+    public string ChineseHour
+    {
+        get
+        {
+            return GetChineseHour(_datetime);
+        }
+    }
+    
+
+    
+
+     农历日期
+     IsChineseLeapMonth
+    /// <summary>
+    /// 是否闰月
+    /// </summary>
+    public bool IsChineseLeapMonth
+    {
+        get { return this._cIsLeapMonth; }
+    }
+    
+
+     IsChineseLeapYear
+    /// <summary>
+    /// 当年是否有闰月
+    /// </summary>
+    public bool IsChineseLeapYear
+    {
+        get
+        {
+            return this._cIsLeapYear;
+        }
+    }
+    
+
+     ChineseDay
+    /// <summary>
+    /// 农历日
+    /// </summary>
+    public int ChineseDay
+    {
+        get { return this._cDay; }
+    }
+    
+
+     ChineseDayString
+    /// <summary>
+    /// 农历日中文表示
+    /// </summary>
+    public string ChineseDayString
+    {
+        get
+        {
+            switch (this._cDay)
+            {
+                case 0:
+                    return "";
+                case 10:
+                    return "初十";
+                case 20:
+                    return "二十";
+                case 30:
+                    return "三十";
+                default:
+                    return nStr2[(int)(_cDay / 10)].ToString() + nStr1[_cDay % 10].ToString();
+
+            }
+        }
+    }
+    
+
+     ChineseMonth
+    /// <summary>
+    /// 农历的月份
+    /// </summary>
+    public int ChineseMonth
+    {
+        get { return this._cMonth; }
+    }
+    
+
+     ChineseMonthString
+    /// <summary>
+    /// 农历月份字符串
+    /// </summary>
+    public string ChineseMonthString
+    {
+        get
+        {
+            return _monthString[this._cMonth];
+        }
+    }
+    
+
+     ChineseYear
+    /// <summary>
+    /// 取农历年份
+    /// </summary>
+    public int ChineseYear
+    {
+        get { return this._cYear; }
+    }
+    
+
+     ChineseYearString
+    /// <summary>
+    /// 取农历年字符串如，一九九七年
+    /// </summary>
+    public string ChineseYearString
+    {
+        get
+        {
+            string tempStr = "";
+            string num = this._cYear.ToString();
+            for (int i = 0; i < 4; i++)
+            {
+                tempStr += ConvertNumToChineseNum(num[i]);
+            }
+            return tempStr + "年";
+        }
+    }
+    
+
+     ChineseDateString
+    /// <summary>
+    /// 取农历日期表示法：农历一九九七年正月初五
+    /// </summary>
+    public string ChineseDateString
+    {
+        get
+        {
+            if (this._cIsLeapMonth == true)
+            {
+                return "农历" + ChineseYearString + "闰" + ChineseMonthString + ChineseDayString;
+            }
+            else
+            {
+                return "农历" + ChineseYearString + ChineseMonthString + ChineseDayString;
+            }
+        }
+    }
+    
+
+     ChineseTwentyFourDay
+    /// <summary>
+    /// 定气法计算二十四节气,二十四节气是按地球公转来计算的，并非是阴历计算的
+    /// </summary>
+    /// <remarks>
+    /// 节气的定法有两种。古代历法采用的称为"恒气"，即按时间把一年等分为24份，
+    /// 每一节气平均得15天有余，所以又称"平气"。现代农历采用的称为"定气"，即
+    /// 按地球在轨道上的位置为标准，一周360°，两节气之间相隔15°。由于冬至时地
+    /// 球位于近日点附近，运动速度较快，因而太阳在黄道上移动15°的时间不到15天。
+    /// 夏至前后的情况正好相反，太阳在黄道上移动较慢，一个节气达16天之多。采用
+    /// 定气时可以保证春、秋两分必然在昼夜平分的那两天。
+    /// </remarks>
+    public string ChineseTwentyFourDay
+    {
+        get
+        {
+            DateTime baseDateAndTime = new DateTime(1900, 1, 6, 2, 5, 0); //#1/6/1900 2:05:00 AM#
+            DateTime newDate;
+            double num;
+            int y;
+            string tempStr = "";
+
+            y = this._date.Year;
+
+            for (int i = 1; i <= 24; i++)
+            {
+                num = 525948.76 * (y - 1900) + sTermInfo[i - 1];
+
+                newDate = baseDateAndTime.AddMinutes(num);//按分钟计算
+                if (newDate.DayOfYear == _date.DayOfYear)
+                {
+                    tempStr = SolarTerm[i - 1];
+                    break;
+                }
+            }
+            return tempStr;
+        }
+    }
+
+    //当前日期前一个最近节气
+    public string ChineseTwentyFourPrevDay
+    {
+        get
+        {
+            DateTime baseDateAndTime = new DateTime(1900, 1, 6, 2, 5, 0); //#1/6/1900 2:05:00 AM#
+            DateTime newDate;
+            double num;
+            int y;
+            string tempStr = "";
+
+            y = this._date.Year;
+
+            for (int i = 24; i >= 1; i--)
+            {
+                num = 525948.76 * (y - 1900) + sTermInfo[i - 1];
+
+                newDate = baseDateAndTime.AddMinutes(num);//按分钟计算
+
+                if (newDate.DayOfYear < _date.DayOfYear)
+                {
+                    tempStr = string.Format("{0}[{1}]", SolarTerm[i - 1], newDate.ToString("yyyy-MM-dd"));
+                    break;
+                }
+            }
+
+            return tempStr;
+        }
+
+    }
+
+    //当前日期后一个最近节气
+    public string ChineseTwentyFourNextDay
+    {
+        get
+        {
+            DateTime baseDateAndTime = new DateTime(1900, 1, 6, 2, 5, 0); //#1/6/1900 2:05:00 AM#
+            DateTime newDate;
+            double num;
+            int y;
+            string tempStr = "";
+
+            y = this._date.Year;
+
+            for (int i = 1; i <= 24; i++)
+            {
+                num = 525948.76 * (y - 1900) + sTermInfo[i - 1];
+
+                newDate = baseDateAndTime.AddMinutes(num);//按分钟计算
+
+                if (newDate.DayOfYear > _date.DayOfYear)
+                {
+                    tempStr = string.Format("{0}[{1}]", SolarTerm[i - 1], newDate.ToString("yyyy-MM-dd"));
+                    break;
+                }
+            }
+            return tempStr;
+        }
+
+    }
+    
+    
+
+     星座
+    /// <summary>
+    /// 计算指定日期的星座序号 
+    /// </summary>
+    public string Constellation
+    {
+        get
+        {
+            int index = 0;
+            int y, m, d;
+            y = _date.Year;
+            m = _date.Month;
+            d = _date.Day;
+            y = m * 100 + d;
+
+            if (((y >= 321) && (y <= 419))) { index = 0; }
+            else if ((y >= 420) && (y <= 520)) { index = 1; }
+            else if ((y >= 521) && (y <= 620)) { index = 2; }
+            else if ((y >= 621) && (y <= 722)) { index = 3; }
+            else if ((y >= 723) && (y <= 822)) { index = 4; }
+            else if ((y >= 823) && (y <= 922)) { index = 5; }
+            else if ((y >= 923) && (y <= 1022)) { index = 6; }
+            else if ((y >= 1023) && (y <= 1121)) { index = 7; }
+            else if ((y >= 1122) && (y <= 1221)) { index = 8; }
+            else if ((y >= 1222) || (y <= 119)) { index = 9; }
+            else if ((y >= 120) && (y <= 218)) { index = 10; }
+            else if ((y >= 219) && (y <= 320)) { index = 11; }
+            else { index = 0; }
+
+            return _constellationName[index];
+        }
+    }
+    
+
+     属相
+     Animal
+    /// <summary>
+    /// 计算属相的索引，注意虽然属相是以农历年来区别的，但是目前在实际使用中是按公历来计算的
+    /// 鼠年为1,其它类推
+    /// </summary>
+    public int Animal
+    {
+        get
+        {
+            int offset = _date.Year - AnimalStartYear;
+            return (offset % 12) + 1;
+        }
+    }
+    
+
+     AnimalString
+    /// <summary>
+    /// 取属相字符串
+    /// </summary>
+    public string AnimalString
+    {
+        get
+        {
+            int offset = _date.Year - AnimalStartYear; //阳历计算
+            //int offset = this._cYear - AnimalStartYear;　农历计算
+            return animalStr[offset % 12].ToString();
+        }
+    }
+    
+    
+
+     天干地支
+     GanZhiYearString
+    /// <summary>
+    /// 取农历年的干支表示法如 乙丑年
+    /// </summary>
+    public string GanZhiYearString
+    {
+        get
+        {
+            string tempStr;
+            int i = (this._cYear - GanZhiStartYear) % 60; //计算干支
+            tempStr = ganStr[i % 10].ToString() + zhiStr[i % 12].ToString() + "年";
+            return tempStr;
+        }
+    }
+    
+
+     GanZhiMonthString
+    /// <summary>
+    /// 取干支的月表示字符串，注意农历的闰月不记干支
+    /// </summary>
+    public string GanZhiMonthString
+    {
+        get
+        {
+            //每个月的地支总是固定的,而且总是从寅月开始
+            int zhiIndex;
+            string zhi;
+            if (this._cMonth > 10)
+            {
+                zhiIndex = this._cMonth - 10;
+            }
+            else
+            {
+                zhiIndex = this._cMonth + 2;
+            }
+            zhi = zhiStr[zhiIndex - 1].ToString();
+
+            //根据当年的干支年的干来计算月干的第一个
+            int ganIndex = 1;
+            string gan;
+            int i = (this._cYear - GanZhiStartYear) % 60; //计算干支
+            switch (i % 10)
+            {
+                 ...
+                case 0: //甲
+                    ganIndex = 3;
+                    break;
+                case 1: //乙
+                    ganIndex = 5;
+                    break;
+                case 2: //丙
+                    ganIndex = 7;
+                    break;
+                case 3: //丁
+                    ganIndex = 9;
+                    break;
+                case 4: //戊
+                    ganIndex = 1;
+                    break;
+                case 5: //己
+                    ganIndex = 3;
+                    break;
+                case 6: //庚
+                    ganIndex = 5;
+                    break;
+                case 7: //辛
+                    ganIndex = 7;
+                    break;
+                case 8: //壬
+                    ganIndex = 9;
+                    break;
+                case 9: //癸
+                    ganIndex = 1;
+                    break;
+                    
+            }
+            gan = ganStr[(ganIndex + this._cMonth - 2) % 10].ToString();
+
+            return gan + zhi + "月";
+        }
+    }
+    
+
+     GanZhiDayString
+    /// <summary>
+    /// 取干支日表示法
+    /// </summary>
+    public string GanZhiDayString
+    {
+        get
+        {
+            int i, offset;
+            TimeSpan ts = this._date - GanZhiStartDay;
+            offset = ts.Days;
+            i = offset % 60;
+            return ganStr[i % 10].ToString() + zhiStr[i % 12].ToString() + "日";
+        }
+    }
+    
+
+     GanZhiDateString
+    /// <summary>
+    /// 取当前日期的干支表示法如 甲子年乙丑月丙庚日
+    /// </summary>
+    public string GanZhiDateString
+    {
+        get
+        {
+            return GanZhiYearString + GanZhiMonthString + GanZhiDayString;
+        }
+    }
+    
+    
+    
+}
+
     @Override
     public int hashCode() {
         // TODO Auto-generated method stub
