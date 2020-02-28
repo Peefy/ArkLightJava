@@ -207,9 +207,9 @@ public class DateTime {
         }
         boolean isleapyear = isLeapYear(year);
         if (isleapyear == true) {
-            return TimeConstants.daysToMonth366[month] - TimeConstants.daysToMonth366[month];
+            return TimeConstants.daysToMonth366[month] - TimeConstants.daysToMonth366[month - 1];
         } else {
-            return TimeConstants.daysToMonth365[month] - TimeConstants.daysToMonth365[month];
+            return TimeConstants.daysToMonth365[month] - TimeConstants.daysToMonth365[month - 1];
         }
     }
 
@@ -294,11 +294,12 @@ public class DateTime {
     }
 
     public DateTime addMonths(int months) {
-        int year = 0, month = 0, day = 0;
         if (months < -120000 || months > 120000) {
             throw new Error();
         }
-        getDatePart(year, month, day);
+        int year = getDatePartYear();
+        int month = getDatePartMonth();
+        int day = getDatePartDay();
         int num = month - 1 + months;
         if (num >= 0) {
             month = num % 12 + 1;
@@ -314,7 +315,8 @@ public class DateTime {
         if (day > num2) {
             day = num2;
         }
-        return new DateTime((long) ((timeToTicks(year, month, day) + getInternalTicks() % TimeConstants.ticksPerDay)));
+        long tickss = timeToTicks(year, month, day);
+        return new DateTime((long) (tickss + getInternalTicks() % TimeConstants.ticksPerDay));
     }
 
     public DateTime addSeconds(double value) {
@@ -357,7 +359,7 @@ public class DateTime {
         if (getDateTimeKind() == DateTimeKind.Local) {
             return this;
         }
-        boolean isDaylightSavings = false;
+        // boolean isDaylightSavings = false;
         boolean isAmbiguousLocalDst = false;
         long ticks = 0; // TimeZoneInfo::GetUtcOffsetFromUtc(this, TimeZoneInfo::Local,
                         // isDaylightSavings, isAmbiguousLocalDst).Ticks();
@@ -491,7 +493,7 @@ public class DateTime {
         return num - array[i - 1] + 1;
     }
 
-    public void getDatePart(Integer year, Integer month, Integer day) {
+    public int getDatePartDay() {
         long internalTicks = getInternalTicks();
         int num = (int) (internalTicks / TimeConstants.ticksPerDay);
         int num2 = num / 146097;
@@ -507,15 +509,63 @@ public class DateTime {
         if (num5 == 4) {
             num5 = 3;
         }
-        year = num2 * 400 + num3 * 100 + num4 * 4 + num5 + 1;
+        // year = num2 * 400 + num3 * 100 + num4 * 4 + num5 + 1;
         num -= num5 * 365;
         int[] array = (num5 == 3 && (num4 != 24 || num3 == 3)) ? TimeConstants.daysToMonth366
                 : TimeConstants.daysToMonth365;
         int i;
         for (i = (num >> 5) + 1; num >= array[i]; i++) {
         }
-        month = i;
-        day = num - array[i - 1] + 1;
+        // int month = i;
+        int day = num - array[i - 1] + 1;
+        return day;
+    }
+
+    public int getDatePartYear() {
+        long internalTicks = getInternalTicks();
+        int num = (int) (internalTicks / TimeConstants.ticksPerDay);
+        int num2 = num / 146097;
+        num -= num2 * 146097;
+        int num3 = num / 36524;
+        if (num3 == 4) {
+            num3 = 3;
+        }
+        num -= num3 * 36524;
+        int num4 = num / 1461;
+        num -= num4 * 1461;
+        int num5 = num / 365;
+        if (num5 == 4) {
+            num5 = 3;
+        }
+        int year = num2 * 400 + num3 * 100 + num4 * 4 + num5 + 1;
+        return year;
+    }
+
+    public int getDatePartMonth() {
+        long internalTicks = getInternalTicks();
+        int num = (int) (internalTicks / TimeConstants.ticksPerDay);
+        int num2 = num / 146097;
+        num -= num2 * 146097;
+        int num3 = num / 36524;
+        if (num3 == 4) {
+            num3 = 3;
+        }
+        num -= num3 * 36524;
+        int num4 = num / 1461;
+        num -= num4 * 1461;
+        int num5 = num / 365;
+        if (num5 == 4) {
+            num5 = 3;
+        }
+        // int year = num2 * 400 + num3 * 100 + num4 * 4 + num5 + 1;
+        num -= num5 * 365;
+        int[] array = (num5 == 3 && (num4 != 24 || num3 == 3)) ? TimeConstants.daysToMonth366
+                : TimeConstants.daysToMonth365;
+        int i;
+        for (i = (num >> 5) + 1; num >= array[i]; i++) {
+        }
+        int month = i;
+        return month;
     }
 
     public double ticksToOADate(long value) {
@@ -551,7 +601,7 @@ public class DateTime {
     }
 
     public long timeToTicks(int hour, int minute, int second) {
-        if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60 && second >= 0 && second < 60) {
+        if (hour >= 0 && hour < 24 || minute >= 0 && minute < 60 || second >= 0 && second < 60) {
             return TimeSpan.timeToTicks(hour, minute, second);
         }
         throw new Error();
